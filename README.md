@@ -27,7 +27,7 @@ Dependencies:
 Documentation
 ---------------
 
-Design steps are documented at [docs] (/docs/)
+Design steps are documented at [docs] (/docs/). This contains design steps of hybrid networks as well as codes to generate models based on specified significant layers. 
 
 Code of XNOR-Net training algorithm has been derived from: https://github.com/jiecaoyu/XNOR-Net-PyTorch and also included in this code. 
 
@@ -50,7 +50,7 @@ python main_imnet.py --save test_imagenet
 Example Model Code
 ---------------
 
-As the codes themselves are reasonably big, I will provide snippets to help understand the flow:
+As the codes themselves are reasonably big, I will provide snippets to help understand the flow. This is a snippet to define both binary and k-bit layers in main.py.
 
 ```
 # Making the activations k-bit. 
@@ -112,4 +112,36 @@ self.bn= nn.BatchNorm2d(int(512*self.inflate))
 self.relu=nn.ReLU(inplace=True)
 
 #Full Code can be found in [models]  (/models/)      
+```
+
+Example PCA code in main_evaluate.py to get PCA plot
+
+```
+def run_PCA(activations_collect,key_idx, components, threshold=0.999):
+        """threshold for minimal loss in performance=0.999
+        activations_collect  function gathers activations over enough mini batches.
+        components=number of filters in the layer you are compressing
+        This is for a layer, you need to run this for multiple layers and store optimal_num_filters into a vector
+        This vector is the significant dimensionality of all layers"""
+        
+        print('number of components are',components)
+        activations=activations_collect[key_idx]#.replace('.weight','')]
+	activations = (activations.data).cpu().numpy()
+        print('shape of activations are:',activations.shape)
+        a=activations.swapaxes(1,2).swapaxes(2,3)
+        a_shape=a.shape
+        print('reshaped ativations are of shape',a.shape)
+	raw_input()
+        pca = PCA(n_components=components) #number of components should be equal to the number of filters
+        pca.fit(a.reshape(a_shape[0]*a_shape[1]*a_shape[2],a_shape[3])) #this should be N*H*W,M
+        a_trans=pca.transform(a.reshape(a_shape[0]*a_shape[1]*a_shape[2],a_shape[3]))
+        print('explained variance ratio is:',pca.explained_variance_ratio_)
+	raw_input()
+        plt.plot(numpy.cumsum(pca.explained_variance_ratio_))
+	numpy.savetxt('./PCA_files_'+str(key_idx)+'.out',numpy.cumsum(pca.explained_variance_ratio_))
+	raw_input()
+        optimal_num_filters=numpy.sum(numpy.cumsum(pca.explained_variance_ratio_)<threshold) 
+        print('we want to retain this percentage of explained variance',threshold)
+        print('number of filters required to explain that much variance is',optimal_num_filters)
+	return optimal_num_filters,pca.components_
 ```
