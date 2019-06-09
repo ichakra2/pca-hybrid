@@ -1,0 +1,205 @@
+	x = self.conv1(x)
+	x = self.bn1(x)
+	x = self.relu1(x)
+	residual = x.clone() 
+	out = x.clone() 
+	out = self.conv2(out)
+	out = self.bn2(out)
+	out = F.relu(out)
+	out+=residual1
+	residual1 = out.clone() 
+	################################### 
+	out = self.conv3(out)
+	out = self.bn3(out)
+	out = F.relu(out)
+	out+=residual1
+	residual1 = out.clone() 
+	################################### 
+	out = self.conv4(out)
+	out = self.bn4(out)
+	out = F.relu(out)
+	out+=residual1
+	residual1 = out.clone() 
+	################################### 
+	out = self.conv5(out)
+	out = self.bn5(out)
+	out = F.relu(out)
+	out+=residual1
+	residual1 = out.clone() 
+	################################### 
+	out = self.conv6(out)
+	out = self.bn6(out)
+	out = F.relu(out)
+	out+=residual1
+	residual1 = out.clone() 
+	################################### 
+	out = self.conv7(out)
+	out = self.bn7(out)
+	out = F.relu(out)
+	out+=residual1
+	residual1 = out.clone() 
+	################################### 
+	out = self.conv8(out)
+	out = self.bn8(out)
+	out = F.relu(out)
+	out+=residual1
+	residual1 = out.clone() 
+	################################### 
+	out = self.conv9(out)
+	out = self.bn9(out)
+	out = F.relu(out)
+	out+=residual1
+	residual1 = out.clone() 
+	################################### 
+	out = self.conv10(out)
+	out = self.bn10(out)
+	out = F.relu(out)
+	out+=residual1
+	residual1 = out.clone() 
+	################################### 
+	out = self.conv11(out)
+	out = self.bn11(out)
+	out = F.relu(out)
+	out+=residual1
+	residual1 = out.clone() 
+	################################### 
+	#########Layer################ 
+	out = self.conv12(out)
+	out = self.bn12(out)
+	residual1 = self.resconv1(residual1)
+	out = F.relu(out)
+	out+=residual1
+	residual1 = out.clone() 
+	################################### 
+	out = self.conv13(out)
+	out = self.bn13(out)
+	out = F.relu(out)
+	out+=residual1
+	residual1 = out.clone() 
+	################################### 
+	out = self.conv14(out)
+	out = self.bn14(out)
+	out = F.relu(out)
+	out+=residual1
+	residual1 = out.clone() 
+	################################### 
+	out = self.conv15(out)
+	out = self.bn15(out)
+	out = F.relu(out)
+	out+=residual1
+	residual1 = out.clone() 
+	################################### 
+	out = self.conv16(out)
+	out = self.bn16(out)
+	out = F.relu(out)
+	out+=residual1
+	residual1 = out.clone() 
+	################################### 
+	out = self.conv17(out)
+	out = self.bn17(out)
+	out = F.relu(out)
+	out+=residual1
+	residual1 = out.clone() 
+	################################### 
+	out = self.conv18(out)
+	out = self.bn18(out)
+	out = F.relu(out)
+	out+=residual1
+	residual1 = out.clone() 
+	################################### 
+	out = self.conv19(out)
+	out = self.bn19(out)
+	out = F.relu(out)
+	out+=residual1
+	residual1 = out.clone() 
+	################################### 
+	out = self.conv20(out)
+	out = self.bn20(out)
+	out = F.relu(out)
+	out+=residual1
+	residual1 = out.clone() 
+	################################### 
+	out = self.conv21(out)
+	out = self.bn21(out)
+	out = F.relu(out)
+	out+=residual1
+	residual1 = out.clone() 
+	################################### 
+	#########Layer################ 
+	out = self.conv22(out)
+	out = self.bn22(out)
+	residual1 = self.resconv2(residual1)
+	out = F.relu(out)
+	out+=residual1
+	residual1 = out.clone() 
+	################################### 
+	out = self.conv23(out)
+	out = self.bn23(out)
+	out = F.relu(out)
+	out+=residual1
+	residual1 = out.clone() 
+	################################### 
+	out = self.conv24(out)
+	out = self.bn24(out)
+	out = F.relu(out)
+	out+=residual1
+	residual1 = out.clone() 
+	################################### 
+	out = self.conv25(out)
+	out = self.bn25(out)
+	out = F.relu(out)
+	out+=residual1
+	residual1 = out.clone() 
+	################################### 
+	out = self.conv26(out)
+	out = self.bn26(out)
+	out = F.relu(out)
+	out+=residual1
+	residual1 = out.clone() 
+	################################### 
+	out = self.conv27(out)
+	out = self.bn27(out)
+	out = F.relu(out)
+	out+=residual1
+	residual1 = out.clone() 
+	################################### 
+	out = self.conv28(out)
+	out = self.bn28(out)
+	out = F.relu(out)
+	out+=residual1
+	residual1 = out.clone() 
+	################################### 
+	out = self.conv29(out)
+	out = self.bn29(out)
+	out = F.relu(out)
+	out+=residual1
+	residual1 = out.clone() 
+	################################### 
+	out = self.conv30(out)
+	out = self.bn30(out)
+	out = F.relu(out)
+	out+=residual1
+	residual1 = out.clone() 
+	################################### 
+	out = self.conv31(out)
+	out = self.bn31(out)
+	out = F.relu(out)
+	out+=residual1
+	residual1 = out.clone() 
+	################################### 
+	#########Layer################ 
+	   x=out 
+	x = self.avgpool(x)
+
+	x = x.view(x.size(0), -1)
+
+	x = self.bn32(x)
+
+	x = self.fc(x)
+
+	x = self.bn33(x)
+
+	x = self.logsoftmax(x)
+
+	return x
+
