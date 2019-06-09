@@ -3,19 +3,19 @@ import torch.nn as nn
 import torch
 import torch.nn.functional as F
 import pdb
-__all__ = ['resnethybunrolled']
+__all__ = ['resnet34hybunrolled_imnet']
 class BinActive(torch.autograd.Function):
     '''
-    Binarize the input activations and calculate the mean across channel dimension.
+    Binarize the input activations
     '''
     def forward(self, input):
         self.save_for_backward(input)
         size = input.size()
-        mean = torch.mean(input.abs(), 1, keepdim=True)
+        #mean = torch.mean(input.abs(), 1, keepdim=True)
         input = input.sign()
-        return input, mean
+        return input
 
-    def backward(self, grad_output, grad_output_mean):
+    def backward(self, grad_output):
         input, = self.saved_tensors
 	#x = torch.tanh(2*input)
 	#y = x**2
@@ -43,15 +43,13 @@ class BinActive2(torch.autograd.Function):
 	v0 = 1
 	v1 = 2
 	v2 = -0.5
-	#x = x.div(xmax)
-	y = 2.**num_bits - 1.
+        y = 2.**num_bits - 1.
 	x = x.add(v0).div(v1)
 	x = x.mul(y).round_()
 	x = x.div(y)
 	x = x.add(v2)
 	x = x.mul(v1)
 	input = x
-
         return input, mean
 
     def backward(self, grad_output, grad_output_mean):
@@ -86,7 +84,7 @@ class BinConv2d(nn.Module):
     
     def forward(self, x):
         x = self.bn(x)
-        x, mean = BinActive()(x)
+        x = BinActive()(x)
         if self.dropout_ratio!=0:
             x = self.dropout(x)
 
@@ -125,53 +123,6 @@ class BinConv2d2(nn.Module):
 
         #x = self.relu(x)
         return x
-class BasicBlock(nn.Module):
-    expansion = 1
-
-    def __init__(self, input_channels, output_channels, kernel_size = 3,stride=1, padding=1,downsample=None):
-        super(BasicBlock, self).__init__()
-
-        self.conv1 = BinConv2d(input_channels, output_channels, kernel_size=3,stride=stride,padding=1,dropout=0)
-        self.bn1 = nn.BatchNorm2d(output_channels)
-#	self.resconv = nn.Conv2d(input_channels, output_channels, kernel_size=1,stride=stride,padding=0)
-#	self.bnres = nn.BatchNorm2d(output_channels)
-        self.relu = nn.ReLU(inplace=True)
-        self.conv2 = BinConv2d(output_channels, output_channels, kernel_size=3,stride=1,padding=1,dropout=0)
-        self.bn2 = nn.BatchNorm2d(output_channels)
-        self.downsample = downsample
-        #self.do_bntan=do_bntan;
-        self.stride = stride
-
-    def forward(self, x):
-
-        residual = x
-
-        out = self.conv1(x)
-        out = self.bn1(out)
-	if self.downsample is not None:
-            #if residual.data.max()>1:
-            #    import pdb; pdb.set_trace()
-            residual = self.downsample(residual)
-	#out +=residual
-        out = F.relu(out)
-#	residual = self.bnres(self.resconv(residual))
-	out += residual
-	residual2 = out
-        out = self.conv2(out)
-        out = self.bn2(out)
-        #if self.downsample is not None:
-            #if residual.data.max()>1:
-            #    import pdb; pdb.set_trace()
-        #    residual = self.downsample(residual)
-
-
-
-        out +=residual2 
-        out = F.relu(out)
-#	out +=residual2
-        return out
-
-	
 
 class ResNet(nn.Module):
 
@@ -179,7 +130,15 @@ class ResNet(nn.Module):
         super(ResNet, self).__init__()
 
 
-
+   # def _make_layer(self, block, planes, blocks, stride=1,do_binary=True):
+    #    downsample = None
+      #  if stride != 1 or self.inplanes != planes * block.expansion:
+      #      #print('Adding Downsample%%%%%%%%%%%%%%%%%%%%%%%%%%%')
+      #      downsample = nn.Sequential(
+      #          BinConv2d(self.inplanes, planes * block.expansion,
+      #                    kernel_size=1, stride=stride, padding=0,dropout=0),
+      #          nn.BatchNorm2d(planes * block.expansion),
+      #      )
     def _make_layer(self, block, planes, blocks, stride=1, do_binary=True):
         downsample = None
 	downsample1 = None
@@ -210,9 +169,12 @@ class ResNet(nn.Module):
         return nn.Sequential(*layers)
 
     def forward(self, x):
+
+
 	x = self.conv1(x)
 	x = self.bn1(x)
 	x = self.relu1(x)
+	x = self.maxpool(x)
 	residual1 = x.clone() 
 	out = x.clone() 
 	out = self.conv2(out)
@@ -251,8 +213,10 @@ class ResNet(nn.Module):
 	out+=residual1
 	residual1 = out.clone() 
 	################################### 
+	#########Layer################ 
 	out = self.conv8(out)
 	out = self.bn8(out)
+	residual1 = self.resconv1(residual1)
 	out = F.relu(out)
 	out+=residual1
 	residual1 = out.clone() 
@@ -275,10 +239,8 @@ class ResNet(nn.Module):
 	out+=residual1
 	residual1 = out.clone() 
 	################################### 
-	#########Layer################ 
 	out = self.conv12(out)
 	out = self.bn12(out)
-	residual1 = self.resconv1(residual1)
 	out = F.relu(out)
 	out+=residual1
 	residual1 = out.clone() 
@@ -301,8 +263,10 @@ class ResNet(nn.Module):
 	out+=residual1
 	residual1 = out.clone() 
 	################################### 
+	#########Layer################ 
 	out = self.conv16(out)
 	out = self.bn16(out)
+	residual1 = self.resconv2(residual1)
 	out = F.relu(out)
 	out+=residual1
 	residual1 = out.clone() 
@@ -337,10 +301,8 @@ class ResNet(nn.Module):
 	out+=residual1
 	residual1 = out.clone() 
 	################################### 
-	#########Layer################ 
 	out = self.conv22(out)
 	out = self.bn22(out)
-	residual1 = self.resconv2(residual1)
 	out = F.relu(out)
 	out+=residual1
 	residual1 = out.clone() 
@@ -375,8 +337,10 @@ class ResNet(nn.Module):
 	out+=residual1
 	residual1 = out.clone() 
 	################################### 
+	#########Layer################ 
 	out = self.conv28(out)
 	out = self.bn28(out)
+	residual1 = self.resconv3(residual1)
 	out = F.relu(out)
 	out+=residual1
 	residual1 = out.clone() 
@@ -399,209 +363,262 @@ class ResNet(nn.Module):
 	out+=residual1
 	residual1 = out.clone() 
 	################################### 
+	out = self.conv32(out)
+	out = self.bn32(out)
+	out = F.relu(out)
+	out+=residual1
+	residual1 = out.clone() 
+	################################### 
+	out = self.conv33(out)
+	out = self.bn33(out)
+	out = F.relu(out)
+	out+=residual1
+	residual1 = out.clone() 
+	################################### 
 	#########Layer################ 
 	x=out 
 	x = self.avgpool(x)
 
 	x = x.view(x.size(0), -1)
 
-	x = self.bn32(x)
+	x = self.bn34(x)
 
 	x = self.fc(x)
 
-	x = self.bn33(x)
+	x = self.bn35(x)
 
 	x = self.logsoftmax(x)
 
 	return x
 
-class ResNet_cifar100(ResNet):
 
-    def __init__(self, num_classes=100,
-                 block=BasicBlock, depth=18):
-        super(ResNet_cifar100, self).__init__()
+	
+    	
+	
+ 
+class ResNet_imagenet(ResNet):
+
+    def __init__(self, num_classes=1000,
+                 block=BasicBlock, layers=[2, 2, 2, 2],depth=18):
+        super(ResNet_imagenet, self).__init__()
         self.inflate = 1
         self.inplanes = 16*self.inflate
         n = int((depth) / 6)+2
+
 	# The layers with binary activations are defined as BinConv2d whereas layers with multi-bit activations are defined as BinConv2d2
-	self.conv1=nn.Conv2d(3,int(16*self.inflate), kernel_size=3, stride=1, padding=1)
-	self.bn1= nn.BatchNorm2d(int(16*self.inflate))
+
+	self.conv1=nn.Conv2d(3,int(64*self.inflate), kernel_size=7, stride=2, padding=3,bias=False)
+	self.bn1= nn.BatchNorm2d(int(64*self.inflate))
 	self.relu1=nn.ReLU(inplace=True)
-	self.conv2=BinConv2d(int(16*self.inflate), int(16*self.inflate), kernel_size=3, stride=1, padding=1)
-	self.bn2= nn.BatchNorm2d(int(16*self.inflate))
+	self.maxpool=nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
+	self.conv2=BinConv2d2(int(64*self.inflate), int(64*self.inflate), kernel_size=3, stride=1, padding=1)
+	self.bn2= nn.BatchNorm2d(int(64*self.inflate))
 	self.relu2=nn.ReLU(inplace=True)
 	#######################################################
 
-	self.conv3=BinConv2d(int(16*self.inflate), int(16*self.inflate), kernel_size=3, stride=1, padding=1)
-	self.bn3= nn.BatchNorm2d(int(16*self.inflate))
+	self.conv3=BinConv2d2(int(64*self.inflate), int(64*self.inflate), kernel_size=3, stride=1, padding=1)
+	self.bn3= nn.BatchNorm2d(int(64*self.inflate))
 	self.relu3=nn.ReLU(inplace=True)
 	#######################################################
 
-	self.conv4=BinConv2d(int(16*self.inflate), int(16*self.inflate), kernel_size=3, stride=1, padding=1)
-	self.bn4= nn.BatchNorm2d(int(16*self.inflate))
+	self.conv4=BinConv2d2(int(64*self.inflate), int(64*self.inflate), kernel_size=3, stride=1, padding=1)
+	self.bn4= nn.BatchNorm2d(int(64*self.inflate))
 	self.relu4=nn.ReLU(inplace=True)
 	#######################################################
 
-	self.conv5=BinConv2d(int(16*self.inflate), int(16*self.inflate), kernel_size=3, stride=1, padding=1)
-	self.bn5= nn.BatchNorm2d(int(16*self.inflate))
+	self.conv5=BinConv2d2(int(64*self.inflate), int(64*self.inflate), kernel_size=3, stride=1, padding=1)
+	self.bn5= nn.BatchNorm2d(int(64*self.inflate))
 	self.relu5=nn.ReLU(inplace=True)
 	#######################################################
 
-	self.conv6=BinConv2d(int(16*self.inflate), int(16*self.inflate), kernel_size=3, stride=1, padding=1)
-	self.bn6= nn.BatchNorm2d(int(16*self.inflate))
+	self.conv6=BinConv2d2(int(64*self.inflate), int(64*self.inflate), kernel_size=3, stride=1, padding=1)
+	self.bn6= nn.BatchNorm2d(int(64*self.inflate))
 	self.relu6=nn.ReLU(inplace=True)
 	#######################################################
 
-	self.conv7=BinConv2d(int(16*self.inflate), int(16*self.inflate), kernel_size=3, stride=1, padding=1)
-	self.bn7= nn.BatchNorm2d(int(16*self.inflate))
+	self.conv7=BinConv2d2(int(64*self.inflate), int(64*self.inflate), kernel_size=3, stride=1, padding=1)
+	self.bn7= nn.BatchNorm2d(int(64*self.inflate))
 	self.relu7=nn.ReLU(inplace=True)
 	#######################################################
 
-	self.conv8=BinConv2d(int(16*self.inflate), int(16*self.inflate), kernel_size=3, stride=1, padding=1)
-	self.bn8= nn.BatchNorm2d(int(16*self.inflate))
+	#########Layer################ 
+	self.conv8=BinConv2d2(int(64*self.inflate), int(128*self.inflate), kernel_size=3, stride=2, padding=1)
+	self.bn8= nn.BatchNorm2d(int(128*self.inflate))
+	self.resconv1=nn.Sequential(BinConv2d2(int(64*self.inflate), int(128*self.inflate), kernel_size=1, stride=2, padding=0),
+	nn.BatchNorm2d(int(128*self.inflate)),
+	nn.ReLU(inplace=True),)
 	self.relu8=nn.ReLU(inplace=True)
 	#######################################################
 
-	self.conv9=BinConv2d(int(16*self.inflate), int(16*self.inflate), kernel_size=3, stride=1, padding=1)
-	self.bn9= nn.BatchNorm2d(int(16*self.inflate))
+	self.conv9=BinConv2d2(int(128*self.inflate), int(128*self.inflate), kernel_size=3, stride=1, padding=1)
+	self.bn9= nn.BatchNorm2d(int(128*self.inflate))
 	self.relu9=nn.ReLU(inplace=True)
 	#######################################################
 
-	self.conv10=BinConv2d(int(16*self.inflate), int(16*self.inflate), kernel_size=3, stride=1, padding=1)
-	self.bn10= nn.BatchNorm2d(int(16*self.inflate))
+	self.conv10=BinConv2d2(int(128*self.inflate), int(128*self.inflate), kernel_size=3, stride=1, padding=1)
+	self.bn10= nn.BatchNorm2d(int(128*self.inflate))
 	self.relu10=nn.ReLU(inplace=True)
 	#######################################################
 
-	self.conv11=BinConv2d(int(16*self.inflate), int(16*self.inflate), kernel_size=3, stride=1, padding=1)
-	self.bn11= nn.BatchNorm2d(int(16*self.inflate))
+	self.conv11=BinConv2d2(int(128*self.inflate), int(128*self.inflate), kernel_size=3, stride=1, padding=1)
+	self.bn11= nn.BatchNorm2d(int(128*self.inflate))
 	self.relu11=nn.ReLU(inplace=True)
 	#######################################################
 
-	#########Layer################ 
-	self.conv12=BinConv2d(int(16*self.inflate), int(32*self.inflate), kernel_size=3, stride=2, padding=1)
-	self.bn12= nn.BatchNorm2d(int(32*self.inflate))
-	self.resconv1=nn.Sequential(BinConv2d(int(16*self.inflate), int(32*self.inflate), kernel_size=1, stride=2, padding=0),
-	nn.BatchNorm2d(int(32*self.inflate)),
-	nn.ReLU(inplace=True),)
+	self.conv12=BinConv2d2(int(128*self.inflate), int(128*self.inflate), kernel_size=3, stride=1, padding=1)
+	self.bn12= nn.BatchNorm2d(int(128*self.inflate))
 	self.relu12=nn.ReLU(inplace=True)
 	#######################################################
 
-	self.conv13=BinConv2d(int(32*self.inflate), int(32*self.inflate), kernel_size=3, stride=1, padding=1)
-	self.bn13= nn.BatchNorm2d(int(32*self.inflate))
+	self.conv13=BinConv2d2(int(128*self.inflate), int(128*self.inflate), kernel_size=3, stride=1, padding=1)
+	self.bn13= nn.BatchNorm2d(int(128*self.inflate))
 	self.relu13=nn.ReLU(inplace=True)
 	#######################################################
 
-	self.conv14=BinConv2d(int(32*self.inflate), int(32*self.inflate), kernel_size=3, stride=1, padding=1)
-	self.bn14= nn.BatchNorm2d(int(32*self.inflate))
+	self.conv14=BinConv2d2(int(128*self.inflate), int(128*self.inflate), kernel_size=3, stride=1, padding=1)
+	self.bn14= nn.BatchNorm2d(int(128*self.inflate))
 	self.relu14=nn.ReLU(inplace=True)
 	#######################################################
 
-	self.conv15=BinConv2d(int(32*self.inflate), int(32*self.inflate), kernel_size=3, stride=1, padding=1)
-	self.bn15= nn.BatchNorm2d(int(32*self.inflate))
+	self.conv15=BinConv2d2(int(128*self.inflate), int(128*self.inflate), kernel_size=3, stride=1, padding=1)
+	self.bn15= nn.BatchNorm2d(int(128*self.inflate))
 	self.relu15=nn.ReLU(inplace=True)
 	#######################################################
 
-	self.conv16=BinConv2d(int(32*self.inflate), int(32*self.inflate), kernel_size=3, stride=1, padding=1)
-	self.bn16= nn.BatchNorm2d(int(32*self.inflate))
+	#########Layer################ 
+	self.conv16=BinConv2d2(int(128*self.inflate), int(256*self.inflate), kernel_size=3, stride=2, padding=1)
+	self.bn16= nn.BatchNorm2d(int(256*self.inflate))
+	self.resconv2=nn.Sequential(BinConv2d2(int(128*self.inflate), int(256*self.inflate), kernel_size=1, stride=2, padding=0),
+	nn.BatchNorm2d(int(256*self.inflate)),
+	nn.ReLU(inplace=True),)
 	self.relu16=nn.ReLU(inplace=True)
 	#######################################################
 
-	self.conv17=BinConv2d(int(32*self.inflate), int(32*self.inflate), kernel_size=3, stride=1, padding=1)
-	self.bn17= nn.BatchNorm2d(int(32*self.inflate))
+	self.conv17=BinConv2d2(int(256*self.inflate), int(256*self.inflate), kernel_size=3, stride=1, padding=1)
+	self.bn17= nn.BatchNorm2d(int(256*self.inflate))
 	self.relu17=nn.ReLU(inplace=True)
 	#######################################################
 
-	self.conv18=BinConv2d(int(32*self.inflate), int(32*self.inflate), kernel_size=3, stride=1, padding=1)
-	self.bn18= nn.BatchNorm2d(int(32*self.inflate))
+	self.conv18=BinConv2d2(int(256*self.inflate), int(256*self.inflate), kernel_size=3, stride=1, padding=1)
+	self.bn18= nn.BatchNorm2d(int(256*self.inflate))
 	self.relu18=nn.ReLU(inplace=True)
 	#######################################################
 
-	self.conv19=BinConv2d(int(32*self.inflate), int(32*self.inflate), kernel_size=3, stride=1, padding=1)
-	self.bn19= nn.BatchNorm2d(int(32*self.inflate))
+	self.conv19=BinConv2d2(int(256*self.inflate), int(256*self.inflate), kernel_size=3, stride=1, padding=1)
+	self.bn19= nn.BatchNorm2d(int(256*self.inflate))
 	self.relu19=nn.ReLU(inplace=True)
 	#######################################################
 
-	self.conv20=BinConv2d(int(32*self.inflate), int(32*self.inflate), kernel_size=3, stride=1, padding=1)
-	self.bn20= nn.BatchNorm2d(int(32*self.inflate))
+	self.conv20=BinConv2d2(int(256*self.inflate), int(256*self.inflate), kernel_size=3, stride=1, padding=1)
+	self.bn20= nn.BatchNorm2d(int(256*self.inflate))
 	self.relu20=nn.ReLU(inplace=True)
 	#######################################################
 
-	self.conv21=BinConv2d(int(32*self.inflate), int(32*self.inflate), kernel_size=3, stride=1, padding=1)
-	self.bn21= nn.BatchNorm2d(int(32*self.inflate))
+	self.conv21=BinConv2d2(int(256*self.inflate), int(256*self.inflate), kernel_size=3, stride=1, padding=1)
+	self.bn21= nn.BatchNorm2d(int(256*self.inflate))
 	self.relu21=nn.ReLU(inplace=True)
 	#######################################################
 
-	#########Layer################ 
-	self.conv22=BinConv2d2(int(32*self.inflate), int(64*self.inflate), kernel_size=3, stride=2, padding=1)
-	self.bn22= nn.BatchNorm2d(int(64*self.inflate))
-	self.resconv2=nn.Sequential(BinConv2d2(int(32*self.inflate), int(64*self.inflate), kernel_size=1, stride=2, padding=0),
-	nn.BatchNorm2d(int(64*self.inflate)),
-	nn.ReLU(inplace=True),)
+	self.conv22=BinConv2d2(int(256*self.inflate), int(256*self.inflate), kernel_size=3, stride=1, padding=1)
+	self.bn22= nn.BatchNorm2d(int(256*self.inflate))
 	self.relu22=nn.ReLU(inplace=True)
 	#######################################################
 
-	self.conv23=BinConv2d2(int(64*self.inflate), int(64*self.inflate), kernel_size=3, stride=1, padding=1)
-	self.bn23= nn.BatchNorm2d(int(64*self.inflate))
+	self.conv23=BinConv2d2(int(256*self.inflate), int(256*self.inflate), kernel_size=3, stride=1, padding=1)
+	self.bn23= nn.BatchNorm2d(int(256*self.inflate))
 	self.relu23=nn.ReLU(inplace=True)
 	#######################################################
 
-	self.conv24=BinConv2d2(int(64*self.inflate), int(64*self.inflate), kernel_size=3, stride=1, padding=1)
-	self.bn24= nn.BatchNorm2d(int(64*self.inflate))
+	self.conv24=BinConv2d2(int(256*self.inflate), int(256*self.inflate), kernel_size=3, stride=1, padding=1)
+	self.bn24= nn.BatchNorm2d(int(256*self.inflate))
 	self.relu24=nn.ReLU(inplace=True)
 	#######################################################
 
-	self.conv25=BinConv2d2(int(64*self.inflate), int(64*self.inflate), kernel_size=3, stride=1, padding=1)
-	self.bn25= nn.BatchNorm2d(int(64*self.inflate))
+	self.conv25=BinConv2d2(int(256*self.inflate), int(256*self.inflate), kernel_size=3, stride=1, padding=1)
+	self.bn25= nn.BatchNorm2d(int(256*self.inflate))
 	self.relu25=nn.ReLU(inplace=True)
 	#######################################################
 
-	self.conv26=BinConv2d2(int(64*self.inflate), int(64*self.inflate), kernel_size=3, stride=1, padding=1)
-	self.bn26= nn.BatchNorm2d(int(64*self.inflate))
+	self.conv26=BinConv2d2(int(256*self.inflate), int(256*self.inflate), kernel_size=3, stride=1, padding=1)
+	self.bn26= nn.BatchNorm2d(int(256*self.inflate))
 	self.relu26=nn.ReLU(inplace=True)
 	#######################################################
 
-	self.conv27=BinConv2d2(int(64*self.inflate), int(64*self.inflate), kernel_size=3, stride=1, padding=1)
-	self.bn27= nn.BatchNorm2d(int(64*self.inflate))
+	self.conv27=BinConv2d2(int(256*self.inflate), int(256*self.inflate), kernel_size=3, stride=1, padding=1)
+	self.bn27= nn.BatchNorm2d(int(256*self.inflate))
 	self.relu27=nn.ReLU(inplace=True)
 	#######################################################
 
-	self.conv28=BinConv2d2(int(64*self.inflate), int(64*self.inflate), kernel_size=3, stride=1, padding=1)
-	self.bn28= nn.BatchNorm2d(int(64*self.inflate))
+	#########Layer################ 
+	self.conv28=BinConv2d2(int(256*self.inflate), int(512*self.inflate), kernel_size=3, stride=2, padding=1)
+	self.bn28= nn.BatchNorm2d(int(512*self.inflate))
+	self.resconv3=nn.Sequential(BinConv2d2(int(256*self.inflate), int(512*self.inflate), kernel_size=1, stride=2, padding=0),
+	nn.BatchNorm2d(int(512*self.inflate)),
+	nn.ReLU(inplace=True),)
 	self.relu28=nn.ReLU(inplace=True)
 	#######################################################
 
-	self.conv29=BinConv2d2(int(64*self.inflate), int(64*self.inflate), kernel_size=3, stride=1, padding=1)
-	self.bn29= nn.BatchNorm2d(int(64*self.inflate))
+	self.conv29=BinConv2d2(int(512*self.inflate), int(512*self.inflate), kernel_size=3, stride=1, padding=1)
+	self.bn29= nn.BatchNorm2d(int(512*self.inflate))
 	self.relu29=nn.ReLU(inplace=True)
 	#######################################################
 
-	self.conv30=BinConv2d2(int(64*self.inflate), int(64*self.inflate), kernel_size=3, stride=1, padding=1)
-	self.bn30= nn.BatchNorm2d(int(64*self.inflate))
+	self.conv30=BinConv2d2(int(512*self.inflate), int(512*self.inflate), kernel_size=3, stride=1, padding=1)
+	self.bn30= nn.BatchNorm2d(int(512*self.inflate))
 	self.relu30=nn.ReLU(inplace=True)
 	#######################################################
 
-	self.conv31=BinConv2d2(int(64*self.inflate), int(64*self.inflate), kernel_size=3, stride=1, padding=1)
-	self.bn31= nn.BatchNorm2d(int(64*self.inflate))
+	self.conv31=BinConv2d2(int(512*self.inflate), int(512*self.inflate), kernel_size=3, stride=1, padding=1)
+	self.bn31= nn.BatchNorm2d(int(512*self.inflate))
 	self.relu31=nn.ReLU(inplace=True)
 	#######################################################
 
+	self.conv32=BinConv2d2(int(512*self.inflate), int(512*self.inflate), kernel_size=3, stride=1, padding=1)
+	self.bn32= nn.BatchNorm2d(int(512*self.inflate))
+	self.relu32=nn.ReLU(inplace=True)
+	#######################################################
+
+	self.conv33=BinConv2d2(int(512*self.inflate), int(512*self.inflate), kernel_size=3, stride=1, padding=1)
+	self.bn33= nn.BatchNorm2d(int(512*self.inflate))
+	self.relu33=nn.ReLU(inplace=True)
+	#######################################################
+
 	#########Layer################ 
-	self.avgpool=nn.AvgPool2d(8)
-	self.bn32= nn.BatchNorm1d(int(64*self.inflate))
-	self.fc=nn.Linear(int(64*self.inflate),num_classes)
-	self.bn33= nn.BatchNorm1d(100)
+	self.avgpool=nn.AvgPool2d(7)
+	self.bn34= nn.BatchNorm1d(int(512*self.inflate))
+	self.fc=nn.Linear(int(512*self.inflate),num_classes)
+	self.bn35= nn.BatchNorm1d(num_classes)
 	self.logsoftmax=nn.LogSoftmax()
+
+	
 	
 
-def resnethybunrolled(**kwargs):
+	
+        #init_model(self)
+        #self.regime = {
+        #    0: {'optimizer': 'SGD', 'lr': 1e-1,
+        #        'weight_decay': 1e-4, 'momentum': 0.9},
+        #    81: {'lr': 1e-4},
+        #    122: {'lr': 1e-5, 'weight_decay': 0},
+        #    164: {'lr': 1e-6}
+        #}
+        self.regime = {
+            0: {'optimizer': 'SGD', 'lr': 5e-3},
+            101: {'lr': 1e-3},
+            142: {'lr': 5e-4},
+            184: {'lr': 1e-4},
+            220: {'lr': 1e-5}
+        }
+
+def resnet34hybunrolled_imnet(**kwargs):
     num_classes, depth, dataset = map(
         kwargs.get, ['num_classes', 'depth', 'dataset'])
     if dataset == 'imagenet':
         num_classes = num_classes or 1000
-        depth = depth or 50
+        depth = depth or 18
         if depth == 18:
             return ResNet_imagenet(num_classes=num_classes,
-                                   block=BasicBlock, layers=[2, 2, 2, 2])
+                                   block=BasicBlock, layers=[2, 2, 2, 2],depth=depth)
         if depth == 34:
             return ResNet_imagenet(num_classes=num_classes,
                                    block=BasicBlock, layers=[3, 4, 6, 3])
