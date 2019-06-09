@@ -43,7 +43,7 @@ python main.py --save test_cifar100
 ImageNet (Specify model filename to save inside main.py save_state function)
 
 ```
-python main_imnet.py --save test_cifar100 
+python main_imnet.py --save test_imagenet
 ```
 
 ---------------
