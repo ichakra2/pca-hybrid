@@ -1,4 +1,24 @@
 # pca-hybrid
+
+--------------
+License Information
+---------------
+
+Copyright (C) 2019  Indranil Chakraborty
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 Codes for PCA-driven Hybrid networks
 
 This framework helps build hybrid neural networks using PCA-driven methodology (https://arxiv.org/abs/1906.01493) on PyTorch. 
@@ -7,9 +27,9 @@ This framework helps build hybrid neural networks using PCA-driven methodology (
 Requirements:
 ---------------
 
-- Python 2.7 
+- Software -  Python 2.7 on RedHat or any other Linux distributions
 
-- NVIDIA GPU 1080Ti or higher (ImageNet simulations on ResNet-18 roughly take 3-4 days to complete, CIFAR-100 takes 2-3 hours)
+- Hardware -  NVIDIA GPU 1080Ti or higher (ImageNet simulations on ResNet-18 roughly take 3-4 days to complete, CIFAR-100 takes 2-3 hours)
 
 -------------
 Dependencies:
@@ -22,6 +42,13 @@ Dependencies:
 - sklearn
 
 - PyTorch 0.3.1
+
+----------------
+Installation of Software
+----------------
+Installation instructions of above softwares are publicly available: https://pytorch.org/get-started/locally/
+
+Install time is negligible. 
 
 ---------------
 Documentation
@@ -36,15 +63,19 @@ How To Run a Hybrid-Network after Design
 ---------------
 
 CIFAR - 100 (Specify model filename to save inside main.py save_state function)
-
+Run time - 2-3 hours on NVIDIA TitanXP
 ```
 python main.py --save test_cifar100 
 ```
 ImageNet (Specify model filename to save inside main.py save_state function)
-
+Run time - 3-4 days on NVIDIA 1080Ti
 ```
 python main_imnet.py --save test_imagenet
 ```
+---------------
+Reproduction Instructions
+---------------
+All the codes use seeded random variables. However variations in seeds can lead to slightly different results. Exact reproducibility in deep neural networks is always difficult especially if number of workers are more. However, if seed is same for all cases, similar trends for different comparison networks should be observable.
 
 ---------------
 Example Codes
