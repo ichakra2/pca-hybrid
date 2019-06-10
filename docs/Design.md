@@ -14,7 +14,7 @@ python main_evaluate.py --arch resnetplainunrolled --model resnetplainunrolled -
 
 3. Run PCAplotresnet.m on MATLAB to plot PCA analysis results of layer-wise significant components. Identify the significant layers using del parameter in code.
 
-4. Design Hybrid-Net by assigning BinConv2d2 to significant layers and BinConv2d to binary layers. Define model in resnethybunrolled.py. Example given below:
+4. Design Hybrid-Net by assigning BinConv2d2 to significant layers and BinConv2d to binary layers. This can be done very easily by using the Matlab codes provided in /model_gen/resnet_print.m and /models/resnet_layer_print.m. Define model in resnethybunrolled.py. Example  of layer definitions given below:
 
 ```
 #Binary Layer definition
