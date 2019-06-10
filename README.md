@@ -27,7 +27,7 @@ Dependencies:
 Documentation
 ---------------
 
-Design steps are documented at [docs] (/docs/). This contains design steps of hybrid networks as well as codes to generate models based on specified significant layers. 
+Design steps are documented at [docs] (./docs/design.md). This contains design steps of hybrid networks as well as codes to generate models based on specified significant layers. 
 
 Code of XNOR-Net training algorithm has been derived from: https://github.com/jiecaoyu/XNOR-Net-PyTorch and also included in this code. 
 
@@ -144,6 +144,6 @@ self.conv=BinConv2d2(int(512*self.inflate), int(512*self.inflate), kernel_size=3
 self.bn= nn.BatchNorm2d(int(512*self.inflate))
 self.relu=nn.ReLU(inplace=True)
 
-#Full Code can be found in [models]  (/models/)      
+#Full Code can be found in [models](./models/)      
 ```
 
