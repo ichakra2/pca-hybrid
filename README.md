@@ -81,8 +81,9 @@ def run_PCA(activations_collect,key_idx, components, threshold=0.999):
         print('number of filters required to explain that much variance is',optimal_num_filters)
 	return optimal_num_filters,pca.components_
 ```
-This generates multiple files which can be put in a folder and plotted with function PCAplotresnet.m
-As the codes themselves are reasonably big, I will provide snippets to help understand the flow. This is a snippet to define both binary and k-bit layers in main.py.
+This generates multiple files which can be put in a folder and plotted with function PCAplotresnet.m.
+
+As the codes themselves are quite big, I will provide snippets to help understand the flow. This is a snippet to define both binary and k-bit layers in main.py.
 
 ```
 # Making the activations k-bit. 
