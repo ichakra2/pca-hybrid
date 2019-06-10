@@ -193,25 +193,21 @@ def test():
     top1 = AverageMeter()
     top5 = AverageMeter()
     bin_op.binarization()
-    #for m in model.modules():
-#	    if isinstance(m, nn.Conv2d):
-#	       print(m.weight.data)
-#	       raw_input()
     for batch_idx,(data, target) in enumerate(testloader):
         target = target.cuda(async=True)
         data_var = torch.autograd.Variable(data.cuda(), volatile=True)
         target_var = torch.autograd.Variable(target, volatile=True)
         
 	output,activations = model(data_var)
+	#Layers to run PCA on
 	key_idx = range(0,19)
-	#size_keyidx = activations[key_idx].size()
-	#print(size_keyidx)
-	#print(size_keyidx[1])
-	#raw_input()
-	for i in key_idx:
+	
+	for i in key_idx: #Run PCA layer-wise
             size_keyidx = activations[i].size()
 	    activation_i = activations[i]
-	    run_PCA(activations,i,size_keyidx[1], threshold=0.999)
+	    run_PCA(activations,i,size_keyidx[1], threshold=0.99)
+	
+	
 	loss= criterion(output, target_var)
 
 	prec1, prec5 = accuracy(output.data, target, training, topk=(1, 5))
