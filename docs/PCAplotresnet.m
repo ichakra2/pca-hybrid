@@ -8,6 +8,7 @@ D(:,3) = linspace(0.4,0.1,N)';
 count=0;
 thr=0.99;
 dev = [];
+del = 2; %criteria
 for i=0:17
     
     data = [];
@@ -37,7 +38,11 @@ for i=0:17
     datanew = data(:,2);
     filter_gt_99(i+1) = size(datanew,1)-size(datanew(datanew>thr),1);
     filter_gt_pc(i+1) = (filter_gt_99(i+1)/size(datanew,1))*100;
+    if i>0
+        if filter_gt_99(i+1)-filter_gt_99(i)>=del %Identifying significant layers
+            disp(['Layer ',num2str(i+2)])
+        end
+    end
 end
-
  figure;
  plot(filter_gt_99);
